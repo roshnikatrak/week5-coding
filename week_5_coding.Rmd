@@ -41,3 +41,30 @@ chinstraps %>%
             sample_size = n())
 ```
 
+Get vectors of body_mass_g for female and male chinstrap penguins separately
+```{r}
+chinstraps_f <- chinstraps %>% 
+  filter(sex == "female") %>% 
+  pull(body_mass_g)
+
+chinstraps_m <- chinstraps %>% 
+  filter(sex == "male") %>% 
+  pull(body_mass_g)
+```
+
+### T-tests, a couple different ways
+
+1. Is there a significant difference in body mass between male and female chinstrap penguins? (two-sided t-test)
+```{r}
+chinstrap_ttest <- t.test(chinstraps_f, chinstraps_m)
+chinstrap_ttest
+
+#effect size (get 1.26, large difference)
+cohen.d(chinstraps_f, chinstraps_m)
+```
+
+2. Are male chinstrap penguins significantly larger in body mass than female chinstrap penguins? (one-sided t-test)
+```{r}
+t.test(chinstraps_m, chinstraps_f, alternative="greater") #use "greater" or "less," but should line up with order the vectors are in
+```
+
