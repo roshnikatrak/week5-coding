@@ -68,3 +68,93 @@ cohen.d(chinstraps_f, chinstraps_m)
 t.test(chinstraps_m, chinstraps_f, alternative="greater") #use "greater" or "less," but should line up with order the vectors are in
 ```
 
+## One-way ANOVA
+
+## 1. Table of counts by species and sex
+
+```{r}
+penguin_counts <- penguins %>% 
+  count(species, sex)
+
+penguin_counts
+```
+
+Create a subset of only female penguins
+```{r}
+penguin_f <- penguins %>% 
+  filter(sex == "female")
+
+#Histogram
+ggplot(data=penguin_f, aes(x=flipper_length_mm))+
+  geom_histogram(aes(fill=species))+
+  facet_wrap(~species, scales="free") #scales command makes it so that they're not all on the same scale
+#look pretty normal
+
+#QQ plot
+ggplot(data=penguin_f, aes(sample=flipper_length_mm))+
+  geom_qq(aes(color=species))+
+  facet_wrap(~species, scales="free")
+```
+
+### Summary statistics
+
+Starting from penguin_f, create a summary table that groups by species, and returns the following:
+
+- mean flipper length
+- sd
+- sample size
+- variance `var`
+- standard error = sd/sqrt(n)
+
+```{r}
+penguin_f_summary <- penguin_f %>% 
+  group_by(species) %>% 
+  summarize(mean_flipper_length=mean(flipper_length_mm),
+            sd_flipper_length=sd(flipper_length_mm),
+            sample_size=n(),
+            se_flipper_length=sd(flipper_length_mm)/sqrt(n()),
+            var_flipper_length=var(flipper_length_mm))
+
+leveneTest(flipper_length_mm ~ species, data=penguin_f) #variance in flipper length as function of species, data exists in penguin_f
+#p>0.05, retain null hypothesis that variances are equal
+```
+
+### Beeswarm plot with mean +- 1sd
+
+```{r}
+ggplot()+
+  geom_beeswarm(data=penguin_f, 
+                aes(x=species, y=flipper_length_mm),
+                color="purple",
+                size=3,
+                alpha=0.5)+ #transparency
+  geom_point(data=penguin_f_summary, #add mean points
+             aes(x=species, y=mean_flipper_length),
+             size=4)+
+  geom_errorbar(data=penguin_f_summary, #add whiskers, mean +- 1sd
+                aes(x=species,
+                    ymax=mean_flipper_length + sd_flipper_length,
+                ymin=mean_flipper_length - sd_flipper_length),
+                width=0.1)+
+  theme_light()
+```
+
+### One-way ANOVA
+
+```{r}
+#aov function by default runs type 1 ANOVA, but you want type 3 if very unequal sample sizes/groups/distributions (usually they give similar results, unless you have very unbalanced data/design)
+penguin_aov <- aov(flipper_length_mm ~ species, data=penguin_f) 
+summary(penguin_aov)
+
+#post-hoc test, does pairwise comparisons
+TukeyHSD(penguin_aov)
+```
+
+Type III ANOVA with the car package
+```{r}
+#create linear model
+penguin_lm <- lm(flipper_length_mm ~ species, data=penguin_f)
+penguin_aov_t3 <- Anova(penguin_lm, type="III")
+penguin_aov_t3
+```
+
